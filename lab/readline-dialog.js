@@ -18,7 +18,7 @@ rl.prompt();
 rl.on("line", function (line) {
     line = line.trim();
     if (line === "exit") {
-        console.log("Exiting...")
+        console.log("Exiting...");
         this.close();
     }
     else {

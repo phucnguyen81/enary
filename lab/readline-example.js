@@ -13,7 +13,7 @@ rl.on('line', function (line) {
             console.log('world!');
             break;
         case 'exit':
-            console.log('exiting...')
+            console.log('exiting...');
             this.close();
             break;
         default:
