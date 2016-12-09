@@ -1,5 +1,5 @@
 /**
- * Run the app, work like:
+ * Run the program, work like:
  * - user enters a command-string
  * - system finds a command that can handle the command-string
  * - system runs the command
@@ -8,14 +8,19 @@
     "use strict";
 
     const context = require("./context").newContext();
-    const handle = require("./commands").handle
+    const handle = require("./commands").handle;
 
     context.onLine(function(line) {
-        handle(line.trim(), context);
+        try {
+            handle(line.trim(), context);
+        }
+        catch(err) {
+            context.response("Sorry, found a bug: " + err);
+        }
     });
 
     context.onClose(function() {
-        // here closing means exiting process
+        // here closing means exiting
         process.exit(0);
     });
 
