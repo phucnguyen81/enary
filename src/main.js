@@ -1,28 +1,76 @@
-/**
- * Run the program, work like:
- * - user enters a command-string
- * - system finds a command that can handle the command-string
- * - system runs the command
- */
-(function () {
-    "use strict";
+"use strict;"
 
-    const context = require("./context").newContext();
-    const handle = require("./commands").handle;
+const fs = require("fs");
+const dl = require("dialog");
 
-    context.onLine(function(line) {
-        try {
-            handle(line.trim(), context);
+const EventEmitter = require('events');
+const ee = new EventEmitter();
+
+const Core = require("./core");
+const App = require("./app");
+const app = new App(new Core(), ee);
+
+const rl = require("readline").createInterface({
+    input: process.stdin,
+    output: process.stdout,
+    prompt: "> "
+}).on("line", function(line) {
+    // just send input as event
+    ee.emit("request", line);
+});
+
+ee.on("request", function(request) {
+    let response = null;
+    try {
+        response = app.handle(request);
+        if (!response) {
+            throw `No response for request ${request}`;
         }
-        catch(err) {
-            context.response("Sorry, found a bug: " + err);
+    }
+    catch(err) {
+        response = `Found a bug: ${err}`;
+    }
+    finally {
+        ee.emit("response", response);
+    }
+}).on("response", function(response) {
+    // TODO if on input prompt, then need to add a new line: state handling?
+    console.log(response);
+    rl.prompt();
+}).on("exit", function() {
+    console.log("Bye!...");
+    rl.close();
+    process.exit();
+}).on("save", function(file, data) {
+    fs.writeFile(file, data, {}, function(err) {
+        if (err) {
+            ee.emit("response", `Writing file ${file} has error ${err}`);
         }
     });
+}).on("open", function(file, onData) {
+    if (!fs.existsSync(file)) {
+        ee.emit("response", `No file found at ${file}`);
+        return;
+    }
 
-    context.onClose(function() {
-        // here closing means exiting
-        process.exit(0);
+    fs.readFile(file, function(err, data) {
+        if (err) {
+            ee.emit("response", `Reading file ${file} has error ${err}`);
+        }
+        else {
+            onData(data);
+        }
     });
+}).on("dialog", function(delayInSecs, msg) {
+    if (!delayInSecs || isNaN(delayInSecs)) {
+        ee.emit("response", "Delay time not valid: ${delayInSecs}");
+        return;
+    }
+    setTimeout(function() {
+        ee.emit("response", `Alert! ${msg}`);
+        dl.warn(msg, "Alert!");
+    }, delayInSecs * 1000);
+});
 
-    context.start();
-})();
+// show initial prompt
+rl.prompt();
