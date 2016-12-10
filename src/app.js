@@ -199,6 +199,6 @@ App.prototype.handle = function(req) {
     }
 
     return `Don't understand request: ${req}`;
-}
+};
 
 module.exports = App;

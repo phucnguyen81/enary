@@ -69,7 +69,7 @@ Core.prototype.toJson = function() {
  */
 Core.prototype.fromJson = function(jsonStr) {
     this.notes = JSON.parse(jsonStr);
-}
+};
 
 /**
  * Convert variations of time unit such as 'minutes', 'min'
@@ -265,7 +265,7 @@ App.prototype.handle = function(req) {
     }
 
     return `Don't understand request: ${req}`;
-}
+};
 
 const fs = require("fs");
 const dl = require("dialog");

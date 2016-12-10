@@ -76,6 +76,6 @@ Core.prototype.toJson = function() {
  */
 Core.prototype.fromJson = function(jsonStr) {
     this.notes = JSON.parse(jsonStr);
-}
+};
 
 module.exports = Core;
