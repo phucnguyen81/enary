@@ -9,6 +9,8 @@
     The left and right nodes, if exist, must exist together.
 */
 function Btree(value, left, right) {
+    this.value = value;
+
     if (left && !right) {
         throw `Has left node: ${left} but not right node: ${right}`;
     }
@@ -30,8 +32,6 @@ function Btree(value, left, right) {
             throw "Right node must be Btree";
         }
     }
-
-    this.value = value;
 }
 
 Btree.prototype.isLeaf = function() {
@@ -47,24 +47,26 @@ Btree.prototype.isLeaf = function() {
 }
 
 /**
-    Build a Btree with a callback that accepts two arguments:
+    Build a generic binary-tree with a callback that accepts two arguments:
     a function to add nodes and a constant to indicate node's level.
 
     For example, to build a tree for 1 + 2:
 
-    let exp = Tree.build((a, _) => {
+    let exp = buildGenericBinaryTree((a, _) => {
         a("+");
         a(_, 1);
         a(_, 2);
     };
 
     The result would look like::
-    Btree { value: "+",
-        left:  Btree { value: 1 },
-        right: Btree { value: 2 }
+    { value: "+",
+        left:  { value: 1 },
+        right: { value: 2 }
     }
+
+    TODO this should be moved to a util package
 */
-Btree.build = function(callback) {
+function buildGenericBinaryTree(callback) {
     const nodes = [];
 
     const indent = new Object();
@@ -112,11 +114,33 @@ Btree.build = function(callback) {
         throw "No node added";
     }
 
-    // convert root to Btree
-    function convertToBtree(tree) {
+    return trees.pop()[0];
+}
+
+/**
+    Build a Btree with a callback that accepts two arguments:
+    a function to add nodes and a constant to indicate node's level.
+
+    For example, to build a tree for 1 + 2:
+
+    let exp = Tree.build((a, _) => {
+        a("+");
+        a(_, 1);
+        a(_, 2);
+    };
+
+    The result would look like::
+    Btree { value: "+",
+        left:  Btree { value: 1 },
+        right: Btree { value: 2 }
+    }
+*/
+Btree.build = function(callback) {
+    // convert generic binary tree to Btree
+    function toBtree(tree) {
         if (tree.left && tree.right) {
-            let left = convertToBtree(tree.left);
-            let right = convertToBtree(tree.right);
+            let left = toBtree(tree.left);
+            let right = toBtree(tree.right);
             return new Btree(tree.value, left, right);
         }
         else {
@@ -124,8 +148,8 @@ Btree.build = function(callback) {
         }
     }
 
-    const root = trees.pop()[0];
-    return convertToBtree(root);
+    const genericTree = buildGenericBinaryTree(callback);
+    return toBtree(genericTree);
 }
 
 console.log("Btree.build:");
