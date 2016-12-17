@@ -36,10 +36,10 @@ function Btree(value, left, right) {
 
 Btree.prototype.isLeaf = function() {
     if (this.left && this.right) {
-        return true;
+        return false;
     }
     else if (!this.left && !this.right) {
-        return false;
+        return true;
     }
     else {
         throw `Left: ${this.left} and right: ${this.right} must either exist together or not at all`;
@@ -193,9 +193,8 @@ Btree.prototype.postwalk = function(leave) {
 }
 
 /*
-    Reduction on btree given a reduce-function that takes
-    three arguments: a node value and the reduced value
-    of its left and right children.
+    Tree reduction given a reduce-function that takes three arguments:
+    a node and the reduced value of its left and right children.
  */
 Btree.prototype.reduce = function(f) {
     // map from node to the value
@@ -203,20 +202,24 @@ Btree.prototype.reduce = function(f) {
     this.postwalk(node => {
         let leftValue = values.get(node.left);
         let rightValue = values.get(node.right);
-        let value = f(node.value, leftValue, rightValue);
+        let value = f(node, leftValue, rightValue);
         values.set(node, value);
     });
     return values.get(this);
 }
 
-console.log("reduce:");
+console.log("btree.reduce:");
 console.log(
-    new Btree("+", new Btree(1), new Btree(2)).reduce((value, left, right) => {
-        if (value === "+") {
+    new Btree("+", new Btree(1), new Btree(2)).reduce((node, left, right) => {
+        if (node.isLeaf()) {
+            return node.value;
+        }
+        else if (node.value === "+") {
             return left + right;
         }
         else {
-            return value;
+            let args = [node, left, right];
+            throw `No support for ${args}`;
         }
     })
 );
