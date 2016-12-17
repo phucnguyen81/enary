@@ -26,8 +26,10 @@ ee.on("error", function(err) {
     console.error(`Found a bug: ${err}`);
     rl.prompt();
 }).on("request", function(request) {
+    // TODO consider moving this into App
     let response = app.handle(request);
     if (response === null || response === undefined) {
+        // TODO consider always have response, so !response would be an error
         ee.emit("error", new Error(`No response for request: ${request}`));
     }
     else {

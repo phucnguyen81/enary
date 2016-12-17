@@ -45,7 +45,7 @@ if (false) {
 
 /**
  * Given an iterable of tokens of an expression,
- * create a binary tree representing the structure of the expression.
+ * create a binary tree representing the expression.
  */
 function parseExp(tokens) {
     let exp = {};
