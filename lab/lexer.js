@@ -1,17 +1,19 @@
 "use strict";
 
-/**
- * Tokenize a string given some token specs.
- * The specs are map of { tokenRegex: tokenType }.
- *
- * The tokenRegex should have at least 'sticky' option since
- * we need to match at the beginning of input.
- *
- * Return an object:
- *  { remaining: the_remaining_of_input_not_matched,
- *    tokens: the_tokens_created_from_matching }
- */
+exports.tokenize = tokenize;
+
 function tokenize(str, tokenSpecs) {
+    /* Tokenize a string given some token specs.
+
+     The specs are map of { tokenRegex: tokenType }.
+
+     The tokenRegex are regex that should have at least 'sticky' option
+     since we need to match at the beginning of input.
+
+     Return an object:
+        { remaining: the_remaining_of_input_not_matched,
+          tokens: the_tokens_created_from_matching }
+    */
     const regexps = {
         // make iterable from iterator
         [Symbol.iterator]() {
@@ -33,18 +35,19 @@ function tokenize(str, tokenSpecs) {
     return { remaining: matchResult.remaining, tokens };
 }
 
-// console.log(tokenize("abc", new Map([
-    // [/a/y, "a"],
-    // [/b/y, "b"]])));
+if (false) {
+    // Test tokenize
+    console.log(tokenize("abc", new Map([
+        [/a/y, "a"],
+        [/b/y, "b"]])));
+}
 
-exports.tokenize = tokenize;
-
-/**
- * Given a string and some regexps,
- * alternate between the regexps to find matches.
- * Return an object capturing the matching result.
- */
 function match(str, regexps) {
+    /* Find alternating matches in a string given some regexps.
+
+    Return an object capturing the matching result.
+    */
+
     for (let re of regexps) {
         if (!re.flags.includes("y")) {
             throw `Require 'y' flag for regexp ${re}`;
@@ -70,5 +73,8 @@ function match(str, regexps) {
     return { remaining: str, matches };
 }
 
-// console.log(match("abc", [/a/y, /b/y]));
-// console.log(match("ababc", [/a/y, /b/y]));
+if (false) {
+    // Test match
+    console.log(match("abc", [/a/y, /b/y]));
+    console.log(match("ababc", [/a/y, /b/y]));
+}

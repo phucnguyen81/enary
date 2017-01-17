@@ -1,2 +1,5 @@
 # vim swap files
 *.swp
+
+# tag file generated with ctags
+/tags

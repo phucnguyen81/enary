@@ -223,3 +223,38 @@ console.log(
         }
     })
 );
+
+/*
+    Whether this matches another tree
+ */
+function doMatch(btree, pattern, onMatch) {
+    var isMatch = false;
+
+    if (!btree || !pattern) {
+        isMatch = btree === pattern;
+    }
+    else if (btree === pattern) {
+        isMatch = true;
+    }
+    else if (!pattern.hasOwnProperty("value") || btree.value === pattern.value) {
+        if (pattern.hasOwnProperty("left")) {
+            isMatch = doMatch(btree.left, pattern.left, onMatch);
+        }
+        else {
+            isMatch = true;
+        }
+
+        if (pattern.hasOwnProperty("right")) {
+            isMatch &&= doMatch(btree.right, pattern.right, onMatch);
+        }
+    }
+    else {
+        isMatch = false;
+    }
+
+    if (isMatch) {
+        onMatch(btree, pattern);
+    }
+
+    return isMatch;
+}
