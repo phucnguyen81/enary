@@ -526,32 +526,36 @@ if (false) {
 }
 
 if (true) {
-    // test grammar
+    // test Grammar
 
     // rules for simple string match
     const rules = defineRules((def, str, re) => {
+        def("space", re(/\s+/y));
         def("number", re(/\d+/y));
         def("var", re(/[a-zA-Z_]\w*/y));
 
         def("element", "number");
         def("element", "var");
+        def("element", "element", "space");
+        def("element", "space", "element");
         def("element", str("("), "exp", str(")"));
 
-        def("factor", "element");
-        def("factor", "factor", str("*"), "element");
+        def("term", "element");
+        def("term", "term", str("*"), "element");
+        def("term", "term", str("/"), "element");
 
-        def("exp", "factor");
-        def("exp", "exp", str("+"), "factor");
+        def("exp", "term");
+        def("exp", "exp", str("+"), "term");
+        def("exp", "exp", str("-"), "term");
     });
 
     const g = newGrammar(rules);
-    Base.log(g);
 
-    const input = new Input("1*2*3");
-    Base.log(g.parse(input, "factor"));
+    const input = new Input("1*2-3");
+    Base.log(g.parse(input, "exp"));
     Base.log(input);
 
-    const input2 = new Input("1*2+2*3");
+    const input2 = new Input("1*2+2/3");
     Base.log(g.parse(input2, "exp"));
     Base.log(input2);
 
@@ -559,8 +563,12 @@ if (true) {
     Base.log(g.parse(input3, "exp"));
     Base.log(input3);
 
-    const input4 = new Input("1+a");
+    const input4 = new Input("(1+a)*b");
     Base.log(g.parse(input4, "exp"));
     Base.log(input4);
+
+    const input5 = new Input("(1 + 2) * 3");
+    Base.log(g.parse(input5, "exp"));
+    Base.log(input5);
 }
 
