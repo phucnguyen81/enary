@@ -73,14 +73,14 @@ if (false) {
 
     // rules for simple expressions
     let rules = defineRules((def, str, re) => {
-        def("expression", "expression", str("+"), "term");
+        def("expression", "expression", "+", "term");
         def("expression", "term");
 
-        def("term", "term", str("*"), "factor");
-        def("term", "term", str("/"), "factor");
+        def("term", "term", "*", "factor");
+        def("term", "term", "/", "factor");
         def("term", "factor");
 
-        def("factor", "primary", str("**"), "factor");
+        def("factor", "primary", "**", "factor");
         def("factor", "primary");
 
         def("primary", "primary");
@@ -91,8 +91,11 @@ if (false) {
         def("element", "number");
 
         def("variable", re(/\w+/y));
-
         def("number", re(/\d+/y));
+        def("+", str("+"));
+        def("-", str("-"));
+        def("*", str("*"));
+        def("/", str("/"));
     });
 
     Base.log(rules);
@@ -315,7 +318,7 @@ RuleName.prototype.doParse = function(input) {
     }
 };
 
-function newGrammar(aGrammar) {
+function rulesToGrammar(aGrammar) {
     /* Create Grammar from the grammar-map returned by defineRules() */
     let grammar = new Grammar();
     for (let [aName, aRule] of aGrammar) {
@@ -342,19 +345,24 @@ function newGrammar(aGrammar) {
 }
 
 if (false) {
-    // Test newGrammar
+    // Test rulesToGrammar
 
     // rules for simple expressions
     let rules = defineRules((def, str, re) => {
-        def("expression", "expression", str("+"), "term");
+        def("expression", "expression", "+", "term");
         def("expression", "term");
-        def("term", "term", str("*"), "number");
-        def("term", "term", str("/"), "number");
+        def("term", "term", "*", "number");
+        def("term", "term", "/", "number");
         def("term", "number");
+
         def("number", re(/\d+/y));
+        def("+", str("+"));
+        def("-", str("-"));
+        def("*", str("*"));
+        def("/", str("/"));
     });
 
-    let g = newGrammar(rules);
+    let g = rulesToGrammar(rules);
     Base.log(g);
 }
 
@@ -507,7 +515,7 @@ if (false) {
 }
 
 if (false) {
-    // test grammar
+    // test Grammar
 
     // rules for simple string match
     const rules = defineRules((def, str, re) => {
@@ -517,19 +525,25 @@ if (false) {
         def("words", "words", "word", "space");
     });
 
-    const g = newGrammar(rules);
+    const g = rulesToGrammar(rules);
     base.log(g);
 
-    const input3 = new input("abc def ");
+    const input3 = new Input("abc def ");
     base.log(g.parse(input3, "words"));
     base.log(input3);
 }
 
-if (true) {
+if (false) {
     // test Grammar
 
     // rules for simple string match
     const rules = defineRules((def, str, re) => {
+        def("(", str("("));
+        def(")", str(")"));
+        def("+", str("+"));
+        def("-", str("-"));
+        def("*", str("*"));
+        def("/", str("/"));
         def("space", re(/\s+/y));
         def("number", re(/\d+/y));
         def("var", re(/[a-zA-Z_]\w*/y));
@@ -538,18 +552,18 @@ if (true) {
         def("element", "var");
         def("element", "element", "space");
         def("element", "space", "element");
-        def("element", str("("), "exp", str(")"));
+        def("element", "(", "exp", ")");
 
         def("term", "element");
-        def("term", "term", str("*"), "element");
-        def("term", "term", str("/"), "element");
+        def("term", "term", "*", "element");
+        def("term", "term", "/", "element");
 
         def("exp", "term");
-        def("exp", "exp", str("+"), "term");
-        def("exp", "exp", str("-"), "term");
+        def("exp", "exp", "+", "term");
+        def("exp", "exp", "-", "term");
     });
 
-    const g = newGrammar(rules);
+    const g = rulesToGrammar(rules);
 
     const input = new Input("1*2-3");
     Base.log(g.parse(input, "exp"));
@@ -572,3 +586,86 @@ if (true) {
     Base.log(input5);
 }
 
+function matchesToTree(matches) {
+    /* Create parse-tree from matches after parsing Input
+
+     the matches can look like:
+     [number 0 1] [element 0 1] [term 0 1]
+     [number 2 3] [element 2 3]
+     [term 0 3] [exp 0 3]
+     [number 4 5] [element 4 5] [term 4 5]
+     [exp 0 5]
+
+    */
+
+    let tree = null;
+
+    for (let token of matches) {
+        let node = {
+            name: token[0],
+            start: token[1],
+            end: token[2],
+        };
+
+        if (!tree) {
+            tree = {
+                start: node.start,
+                end: node.end,
+                children: [ node ],
+            };
+            continue;
+        }
+
+        let children = tree.children;
+        let last = children.length > 0 ? children[children.length - 1] : null;
+
+        if (last && node.start === last.start && node.end === last.end) {
+            children[children.length - 1] = {
+                name: node.name,
+                start: node.start,
+                end: node.end,
+                children: [ last ]
+            };
+        }
+        else if (node.start === tree.end) {
+            // token is sibling of previous one
+            tree.children.push(node);
+            // update end of children, start stays the same
+            tree.end = node.end;
+        }
+        else if (node.start === tree.start && node.end === tree.end) {
+            // token covers the previous tokens
+            // so this is the actual parent
+            tree.name = node.name;
+            // now need new parent
+            tree = {
+                start: tree.start,
+                end: tree.end,
+                children: [tree],
+            };
+        }
+        else {
+            // token must be a mismatch, not in tree
+        }
+    }
+
+    return tree;
+}
+
+if (true) {
+    // test matchesToTree
+    let matches = [
+        [ '(', 0, 1 ],
+        [ 'number', 1, 2 ], [ 'element', 1, 2 ], [ 'term', 1, 2 ], [ 'exp', 1, 2 ],
+        [ '+', 2, 3 ],
+        [ 'number', 3, 4 ], [ 'element', 3, 4 ], [ 'term', 3, 4 ],
+        [ 'exp', 1, 4 ],
+        [ ')', 4, 5 ],
+        [ 'element', 0, 5 ], [ 'term', 0, 5 ],
+        [ '*', 5, 6 ],
+        [ 'number', 6, 7 ], [ 'element', 6, 7 ],
+        [ 'term', 0, 7 ], [ 'exp', 0, 7 ],
+    ];
+    let tree = matchesToTree(matches);
+    Base.log(tree);
+}
