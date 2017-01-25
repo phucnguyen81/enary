@@ -1,35 +1,66 @@
-# TODO-1 - DONE initial exploration
-Ok, first lets do a simple thing based on node's strength:
-pop up an alert after some period of time
+# TODO-15 - have a Tree structure
+Again I'm back to needing a tree structure for the parse-tree
+of form: { name, children }.
+Also, specifically each node has start-end indices for the matched texts.
 
-user: remind in 5min
-system: after that time elapsed, show an alert
+Why do I need a specific Tree for the parse-tree?
+Well, because the parse-tree is quite specific.
+It is the sole structure representing the parsed source code.
+I will need to do transformations on it quite a bit also.
 
-Looks like I need to run a sort of REPL thing here.
+# TODO-14 - extend Node REPL
+Find a way to just extend the Node REPL, which allows:
+- make use of everything Node has to offer
+- add my own commands
 
-Lets explore the usage of Node REPL for making command-prompt.
+# TODO-13 - compute simple math expressions
+Should be fun to do, can use the Interpreter Pattern here.
+Nah, a simple stack machine to eval expressions should be enough.
+Uhmm, this blows up to writing a BNF parser generator :(.
 
-# TODO-2 - DONE explore usage of Node REPL
-Lets go over the example code.
-Nah, the REPL is too heavy for this, lets use its component readline.
+Uhmm, no need to do this, just extend the Node REPL.
 
-# TODO-3 - DONE use readline
-readline package seems to be a right fit.
-It is a basic command prompt for doing line I/O.
+# TODO-12 - DONE show the prompt after each complete response
+The prompt does not show after saving session.
+The prompt does show after openning session, though.
 
-# TODO-4 - DONE make echo program with readline
-Done, something fun there.
+This is because saving file is async,
+so the task is finished after the prompt is reset.
 
-# TODO-5 - DONE make a program that show an alert after a period
-Use setTimer and just write the alert to console.
+Currently, handle this by manually adding an endResponse()
+at the end of each command to reset the prompt.
+Not super clean but works for now.
 
-# TODO-6 - DONE enter alert command
-Let user enter command like: remind in {time} that {message}
-Then show the message after the timeout.
+# TODO-11 - DONE save/open session
+Ok, what format to use here?
+json should be the first choice because of off-the-shelf support for serialization.
 
-# TODO-7 - DONE parse simple command phrase
-Parse simple command pharses such as 'remind in 5 min to feed the dog'.
-Interesting enough, huh?
+The session is saved in current dir.
+Lets see if we can save file relative to a javascript file.
+Yes, we have '__dirname' and '__filename' for that.
+
+# TODO-10 - DONE add some more commands
+Add commands to add note, show notes, find notes, delete notes.
+
+To add a command:
+
+- commands.js: add command-parsing to commands.js, follows the signature cmd(line, context)
+- commands.js: add the new command to exported list of commands
+- context.js: add command-logic
+
+Is this the simplest way?
+
+# TODO-9 - DONE consider using Command and Chain-of-Responsibility
+Parsing a general command-string proves to be difficult.
+The parser complexity increases with each command added.
+
+Another way to look at this is:
+There is a bunch of commands that handles specific command-phrases.
+Given a phrase, each command can try to handle the phrase until one of them succeeds.
+This sounds like Command and Chain-of-Responsibility patterns.
+
+- have different commands, each handles a specific command phrase
+- if a command cannot handle the phrase, use the next command
 
 # TODO-8 - DONE recognize duration like 5 min
 For phrase starting with 'in', what follows is either time or space.
@@ -61,48 +92,36 @@ word = javascript-regex-for-word
 Nah, going this way will eventually lead to parsing natural english sentence,
 too much effort.
 
-# TODO-9 - DONE consider using Command and Chain-of-Responsibility
-Parsing a general command-string proves to be difficult.
-The parser complexity increases with each command added.
+# TODO-7 - DONE parse simple command phrase
+Parse simple command pharses such as 'remind in 5 min to feed the dog'.
+Interesting enough, huh?
 
-Another way to look at this is:
-There is a bunch of commands that handles specific command-phrases.
-Given a phrase, each command can try to handle the phrase until one of them succeeds.
-This sounds like Command and Chain-of-Responsibility patterns.
+# TODO-6 - DONE enter alert command
+Let user enter command like: remind in {time} that {message}
+Then show the message after the timeout.
 
-- have different commands, each handles a specific command phrase
-- if a command cannot handle the phrase, use the next command
+# TODO-5 - DONE make a program that show an alert after a period
+Use setTimer and just write the alert to console.
 
-# TODO-10 - DONE add some more commands
-Add commands to add note, show notes, find notes, delete notes.
+# TODO-4 - DONE make echo program with readline
+Done, something fun there.
 
-To add a command:
+# TODO-3 - DONE use readline
+readline package seems to be a right fit.
+It is a basic command prompt for doing line I/O.
 
-- commands.js: add command-parsing to commands.js, follows the signature cmd(line, context)
-- commands.js: add the new command to exported list of commands
-- context.js: add command-logic
+# TODO-2 - DONE explore usage of Node REPL
+Lets go over the example code.
+Nah, the REPL is too heavy for this, lets use its component readline.
 
-Is this the simplest way?
+# TODO-1 - DONE initial exploration
+Ok, first lets do a simple thing based on node's strength:
+pop up an alert after some period of time
 
-# TODO-11 - DONE save/open session
-Ok, what format to use here?
-json should be the first choice because of off-the-shelf support for serialization.
+user: remind in 5min
+system: after that time elapsed, show an alert
 
-The session is saved in current dir.
-Lets see if we can save file relative to a javascript file.
-Yes, we have '__dirname' and '__filename' for that.
+Looks like I need to run a sort of REPL thing here.
 
-# TODO-12 - DONE show the prompt after each complete response
-The prompt does not show after saving session.
-The prompt does show after openning session, though.
+Lets explore the usage of Node REPL for making command-prompt.
 
-This is because saving file is async,
-so the task is finished after the prompt is reset.
-
-Currently, handle this by manually adding an endResponse()
-at the end of each command to reset the prompt.
-Not super clean but works for now.
-
-# TODO-13 - compute simple math expressions
-Should be fun to do, can use the Interpreter Pattern here.
-Nah, a simple stack machine to eval expressions should be enough.

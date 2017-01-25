@@ -2,7 +2,7 @@
 
 const Base = require("../base/base");
 
-/* Parse strings to build ast given BNF like notation.
+/* Parse strings to build parse-tree given BNF like notation.
 
     For example, BNF for expression looks like:
 
@@ -37,33 +37,37 @@ function defineRules(callback) {
 
     const rules = new Map();
 
+    function defRules(name, defs) {
+        if (defs.length < 1) {
+            throw `Require at least one definition`;
+        }
+        if (!rules.has(name)) {
+            rules.set(name, []);
+        }
+        rules.get(name).push(defs);
+    }
+
     function def() {
         if (arguments.length < 2) {
             throw `Require at least two arguments for rhs and lhs, not just ${arguments}`;
         }
         let args = Array.from(arguments);
         let name = args.shift();
-        args = args.map(
-            (arg, idx, _) => typeof arg === "string" ? rule(arg) : arg);
-        if (!rules.has(name)) {
-            rules.set(name, []);
-        }
-        rules.get(name).push(args);
+        args = args.map(arg => {
+            return { type: "rule", value: arg };
+        });
+        defRules(name, args);
     }
 
-    function rule(name) {
-        return { type: "rule", value: name };
+    function str(name, s) {
+        defRules(name, [{ type: "string", value: s }]);
     }
 
-    function str(s) {
-        return { type: "string", value: s };
+    function rex(name, re) {
+        defRules(name, [{ type: "regex", value: re }]);
     }
 
-    function re(s) {
-        return { type: "regex", value: s };
-    }
-
-    callback(def, str, re);
+    callback(def, str, rex);
 
     return rules;
 }
@@ -72,7 +76,7 @@ if (false) {
     // Test defineRules
 
     // rules for simple expressions
-    let rules = defineRules((def, str, re) => {
+    let rules = defineRules((def, str, rex) => {
         def("expression", "expression", "+", "term");
         def("expression", "term");
 
@@ -90,12 +94,12 @@ if (false) {
         def("element", "variable");
         def("element", "number");
 
-        def("variable", re(/\w+/y));
-        def("number", re(/\d+/y));
-        def("+", str("+"));
-        def("-", str("-"));
-        def("*", str("*"));
-        def("/", str("/"));
+        rex("variable", /\w+/y);
+        rex("number", /\d+/y);
+        str("+", "+");
+        str("-", "-");
+        str("*", "*");
+        str("/", "/");
     });
 
     Base.log(rules);
@@ -148,10 +152,12 @@ Grammar.prototype.rule = function(name) {
     }
     return null;
 };
-Grammar.prototype.parse = function(input, initRule) {
-    const rule = this.rule(initRule);
+Grammar.prototype.parse = function(str, initRule) {
+    var rule = this.rule(initRule);
     if (rule) {
-        return rule.parse(input);
+        let input = new Input(str);
+        rule.parse(input);
+        return input;
     }
     else {
         throw `Found no rule named: ${initRule}`;
@@ -318,10 +324,10 @@ RuleName.prototype.doParse = function(input) {
     }
 };
 
-function rulesToGrammar(aGrammar) {
+function fromRulesToGrammar(rules) {
     /* Create Grammar from the grammar-map returned by defineRules() */
     let grammar = new Grammar();
-    for (let [aName, aRule] of aGrammar) {
+    for (let [aName, aRule] of rules) {
         let rule = new Rule(grammar, aName);
         for (let anAlt of aRule) {
             let alt = new Alt(rule);
@@ -345,24 +351,24 @@ function rulesToGrammar(aGrammar) {
 }
 
 if (false) {
-    // Test rulesToGrammar
+    // Test fromRulesToGrammar
 
     // rules for simple expressions
-    let rules = defineRules((def, str, re) => {
+    let rules = defineRules((def, str, rex) => {
         def("expression", "expression", "+", "term");
         def("expression", "term");
         def("term", "term", "*", "number");
         def("term", "term", "/", "number");
         def("term", "number");
 
-        def("number", re(/\d+/y));
-        def("+", str("+"));
-        def("-", str("-"));
-        def("*", str("*"));
-        def("/", str("/"));
+        rex("number", /\d+/y);
+        str("+", "+");
+        str("-", "-");
+        str("*", "*");
+        str("/", "/");
     });
 
-    let g = rulesToGrammar(rules);
+    let g = fromRulesToGrammar(rules);
     Base.log(g);
 }
 
@@ -375,6 +381,11 @@ function Input(str) {
     this.mismatches = [];
     this.startMatches = [];
 }
+Input.prototype.isAtEnd = function() {
+    /* Whether current position is at end of input string.
+     */
+    return this._pos >= this.str.length;
+};
 Input.prototype.pos = function(p) {
     /* With argument p, set position; without argument p, return position */
 
@@ -518,26 +529,21 @@ if (false) {
     // test Grammar
 
     // rules for simple string match
-    const rules = defineRules((def, str, re) => {
-        def("word", re(/\w+/y));
-        def("space", str(" "));
+    let rules = defineRules((def, str, rex) => {
+        rex("word", /\w+/y);
+        str("space", " ");
         def("words", "word", "space");
         def("words", "words", "word", "space");
     });
-
-    const g = rulesToGrammar(rules);
-    base.log(g);
-
-    const input3 = new Input("abc def ");
-    base.log(g.parse(input3, "words"));
-    base.log(input3);
+    let g = fromRulesToGrammar(rules);
+    Base.log(g.parse("abc def ", "words"));
 }
 
 if (false) {
     // test Grammar
 
-    // rules for simple string match
-    const rules = defineRules((def, str, re) => {
+    // rules for simple expressions
+    let rules = defineRules((def, str, re) => {
         def("(", str("("));
         def(")", str(")"));
         def("+", str("+"));
@@ -563,30 +569,20 @@ if (false) {
         def("exp", "exp", "-", "term");
     });
 
-    const g = rulesToGrammar(rules);
+    let g = fromRulesToGrammar(rules);
 
-    const input = new Input("1*2-3");
-    Base.log(g.parse(input, "exp"));
-    Base.log(input);
+    Base.log(g.parse("1*2-3", "exp"));
 
-    const input2 = new Input("1*2+2/3");
-    Base.log(g.parse(input2, "exp"));
-    Base.log(input2);
+    Base.log(g.parse("1*2+2/3", "exp"));
 
-    const input3 = new Input("(1+2)*3");
-    Base.log(g.parse(input3, "exp"));
-    Base.log(input3);
+    Base.log(g.parse("(1+2)*3", "exp"));
 
-    const input4 = new Input("(1+a)*b");
-    Base.log(g.parse(input4, "exp"));
-    Base.log(input4);
+    Base.log(g.parse("(1+a)*b", "exp"));
 
-    const input5 = new Input("(1 + 2) * 3");
-    Base.log(g.parse(input5, "exp"));
-    Base.log(input5);
+    Base.log(g.parse("(1 + 2) * 3", "exp"));
 }
 
-function matchesToTree(matches) {
+function fromMatchesToTree(matches) {
     /* Create parse-tree from matches after parsing Input
 
      the matches can look like:
@@ -617,14 +613,14 @@ function matchesToTree(matches) {
         }
 
         let children = tree.children;
-        let last = children.length > 0 ? children[children.length - 1] : null;
+        let lastChild = children.length > 0 ? children[children.length - 1] : null;
 
-        if (last && node.start === last.start && node.end === last.end) {
+        if (lastChild && node.start === lastChild.start && node.end === lastChild.end) {
             children[children.length - 1] = {
                 name: node.name,
                 start: node.start,
                 end: node.end,
-                children: [ last ]
+                children: [ lastChild ]
             };
         }
         else if (node.start === tree.end) {
@@ -645,15 +641,15 @@ function matchesToTree(matches) {
             };
         }
         else {
-            // token must be a mismatch, not in tree
+            // token must be a mismatch, skip it
         }
     }
 
     return tree;
 }
 
-if (true) {
-    // test matchesToTree
+if (false) {
+    // test fromMatchesToTree
     let matches = [
         [ '(', 0, 1 ],
         [ 'number', 1, 2 ], [ 'element', 1, 2 ], [ 'term', 1, 2 ], [ 'exp', 1, 2 ],
@@ -666,6 +662,90 @@ if (true) {
         [ 'number', 6, 7 ], [ 'element', 6, 7 ],
         [ 'term', 0, 7 ], [ 'exp', 0, 7 ],
     ];
-    let tree = matchesToTree(matches);
+
+    let tree = fromMatchesToTree(matches);
+
     Base.log(tree);
 }
+
+function parse(str, rules, initRule) {
+    /* Return parsing result of a string given the parsing rules.
+    The rules are what returned from defineRules().
+    */
+    var grammar = fromRulesToGrammar(rules);
+    var input = grammar.parse(str, initRule);
+    return {
+        match: input.isAtEnd(),
+        tree: fromMatchesToTree(input.matches)
+    };
+}
+
+if (false) {
+    // test parse
+
+    // rules for simple expression
+    let exp = defineRules((def, str, rex) => {
+        str("(", "(");
+        str(")", ")");
+        str("+", "+");
+        str("-", "-");
+        str("*", "*");
+        str("/", "/");
+        rex("space", /\s+/y);
+        rex("number", /\d+/y);
+        rex("var", /[a-zA-Z_]\w*/y);
+
+        def("element", "number");
+        def("element", "var");
+        def("element", "element", "space");
+        def("element", "space", "element");
+        def("element", "(", "exp", ")");
+
+        def("term", "element");
+        def("term", "term", "*", "element");
+        def("term", "term", "/", "element");
+
+        def("exp", "term");
+        def("exp", "exp", "+", "term");
+        def("exp", "exp", "-", "term");
+    });
+
+    // now parse and see the result
+    // TODO too difficult to see, need to show tree form
+    Base.log(parse("1*2+3", exp, "exp"));
+}
+
+function treeToString(tree, toStr, baseIndent, indent) {
+    /* Render tree to string given a function toStr to render each node.
+     */
+    baseIndent = baseIndent ? baseIndent : "  ";
+    indent = indent ? indent : "";
+    let s = indent + toStr(tree) + Base.EOL;
+    if (tree.children) {
+        indent += baseIndent;
+        for (let child of tree.children) {
+            s += treeToString(child, toStr, baseIndent, indent);
+        }
+    }
+    return s;
+}
+
+
+if (false) {
+    // test treeToString
+
+    let tree = {
+        name: "a",
+        children: [
+            {   name: "a1",
+                children: [
+                    { name: "a11" },
+                    { name: "a12" } ]
+            },
+            { name: "a2" }
+        ]
+    };
+
+    Base.log(treeToString(tree, t => t.name));
+}
+

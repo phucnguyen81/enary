@@ -4,10 +4,11 @@
 
 "use strict";
 
-const util = require('util');
+const util = require("util");
+const os = require("os");
 
 module.exports = {
-    max, maxIter, log, inspect
+    max, maxIter, log, inspect, EOL: os.EOL
 };
 
 function max() {
@@ -22,7 +23,12 @@ function maxIter(iter) {
 }
 
 function log(obj) {
-    console.log(inspect(obj));
+    if (obj && typeof obj === "object") {
+        console.log(inspect(obj));
+    }
+    else {
+        console.log(obj);
+    }
 }
 
 function inspect(obj) {
